@@ -8,9 +8,9 @@ const cheerio = require("cheerio");
 request( matchLink , cb );
 function cb(error , response , data){
     // console.log("got the data !!!");
-     console.log(data);
+    // console.log(data);
     //fs.writeFileSync("./match.html" , data);
-    //getHighestWicketTaker(data);
+    getHighestWicketTaker(data);
 }
 
 
