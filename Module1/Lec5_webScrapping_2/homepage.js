@@ -19,4 +19,3 @@ function processData(html){
     // console.log(allMatchesLink);
     getAllMatches(allMatchesLink);
 }
-
