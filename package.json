@@ -19,6 +19,7 @@
   "homepage": "https://github.com/ParleeG/DEV_PP_11#readme",
   "dependencies": {
     "cheerio": "^1.0.0-rc.6",
+    "json2xls": "^0.1.2",
     "request": "^2.88.2"
   }
 }
