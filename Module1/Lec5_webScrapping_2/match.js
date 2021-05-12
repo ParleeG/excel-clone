@@ -1,18 +1,35 @@
 const cheerio = require("cheerio");
 const request = require("request");
+const json2xls = require('json2xls');
 const fs = require("fs");
 // let matchLink = "https://www.espncricinfo.com/series/ipl-2020-21-1210595/delhi-capitals-vs-mumbai-indians-final-1237181/full-scorecard";
 
-
+let countOfRequestSent = 0;
 function getMatchDetails(matchLink) {
+    console.log("Sending Request", countOfRequestSent);
+
+
     request(matchLink, function (error, response, data) {
+        countOfRequestSent--;
+
         processData(data);
+
+        console.log("callback", countOfRequestSent);
+        if (countOfRequestSent == 0) {
+            let leaderboardFilePath = `./leaderboard.json`;
+            let board = JSON.parse(fs.readFileSync(leaderboardFilePath));
+
+            var xls = json2xls(board);
+
+            fs.writeFileSync('./data.xlsx', xls, 'binary');
+        }
     })
+    countOfRequestSent++;
 }
 
 
 function processData(html) {
-    
+
     let myDocument = cheerio.load(html);
     let bothInnings = myDocument(".card.content-block.match-scorecard-table .Collapsible");
     for (let i = 0; i < bothInnings.length; i++) {
@@ -20,7 +37,7 @@ function processData(html) {
         // <div class="Collapsible"></div>
         let teamName = oneInning.find("h5").text();
         teamName = teamName.split("INNINGS")[0].trim();
-        console.log(teamName);
+        //console.log(teamName);
         let allTrs = oneInning.find(".table.batsman tbody tr");
         for (let j = 0; j < allTrs.length - 1; j++) {
             let allTds = myDocument(allTrs[j]).find("td");
@@ -44,7 +61,7 @@ function processData(html) {
             }
         }
     }
-    console.log("############################################");
+    //console.log("############################################");
 }
 
 function checkTeamFolder(teamName) {
@@ -104,32 +121,32 @@ function processDetails(teamName, batsmanName, runs, balls, fours, sixes, strike
         createBatsmanFile(teamName, batsmanName, runs, balls, fours, sixes, strikeRate);
     }
 }
-function checkLeaderBoard(){
+function checkLeaderBoard() {
     let leaderboardFilePath = `./leaderboard.json`;
     return fs.existsSync(leaderboardFilePath);
 }
-function createLeaderBoard(){
+function createLeaderBoard() {
     let leaderboardFilePath = `./leaderboard.json`;
-    let board=[];
-    fs.writeFileSync(leaderboardFilePath,JSON.stringify(board));
+    let board = [];
+    fs.writeFileSync(leaderboardFilePath, JSON.stringify(board));
 }
-function checkbatsmanName(teamName, batsmanName){
+function checkbatsmanName(teamName, batsmanName) {
     let leaderboardFilePath = `./leaderboard.json`;
-    let batsman= JSON.parse(fs.readFileSync(leaderboardFilePath));
-    for(let i=0;i<batsman.length;i++){
-        if(batsman[i].Name==batsmanName&&batsman[i].Team==teamName)
+    let batsman = JSON.parse(fs.readFileSync(leaderboardFilePath));
+    for (let i = 0; i < batsman.length; i++) {
+        if (batsman[i].Name == batsmanName && batsman[i].Team == teamName)
             return true;
     }
     return false;
 }
-function createbatsmanName(teamName, batsmanName, runs, balls, fours, sixes, strikeRate){
+function createbatsmanName(teamName, batsmanName, runs, balls, fours, sixes, strikeRate) {
     let leaderboardFilePath = `./leaderboard.json`;
-    let data= JSON.parse(fs.readFileSync(leaderboardFilePath));
-    if(data.length==0){
-        let board=[];
+    let data = JSON.parse(fs.readFileSync(leaderboardFilePath));
+    if (data.length == 0) {
+        let board = [];
         let player = {
-            Name:batsmanName,
-            Team:teamName,
+            Name: batsmanName,
+            Team: teamName,
             Runs: runs,
             Balls: balls,
             Fours: fours,
@@ -138,10 +155,10 @@ function createbatsmanName(teamName, batsmanName, runs, balls, fours, sixes, str
         board.push(player);
         fs.writeFileSync(leaderboardFilePath, JSON.stringify(board));
     }
-    else{
+    else {
         let player = {
-            Name:batsmanName,
-            Team:teamName,
+            Name: batsmanName,
+            Team: teamName,
             Runs: runs,
             Balls: balls,
             Fours: fours,
@@ -151,16 +168,16 @@ function createbatsmanName(teamName, batsmanName, runs, balls, fours, sixes, str
         fs.writeFileSync(leaderboardFilePath, JSON.stringify(data));
     }
 }
-function updatebatsmanName(teamName, batsmanName, runs, balls, fours, sixes, strikeRate){
+function updatebatsmanName(teamName, batsmanName, runs, balls, fours, sixes, strikeRate) {
     let leaderboardFilePath = `./leaderboard.json`;
-    let board= JSON.parse(fs.readFileSync(leaderboardFilePath));
-    for(let i=0;i<board.length;i++){
-        if(board[i].Name==batsmanName&&board[i].Team==teamName){
-            board[i].Runs=parseInt(board[i].Runs)+parseInt(runs);
-            board[i].Balls=parseInt(board[i].Balls)+parseInt(balls);
-            board[i].Fours=parseInt(board[i].Fours)+parseInt(fours);
-            board[i].Sixes=parseInt(board[i].Sixes)+parseInt(sixes);
-            break; 
+    let board = JSON.parse(fs.readFileSync(leaderboardFilePath));
+    for (let i = 0; i < board.length; i++) {
+        if (board[i].Name == batsmanName && board[i].Team == teamName) {
+            board[i].Runs = parseInt(board[i].Runs) + parseInt(runs);
+            board[i].Balls = parseInt(board[i].Balls) + parseInt(balls);
+            board[i].Fours = parseInt(board[i].Fours) + parseInt(fours);
+            board[i].Sixes = parseInt(board[i].Sixes) + parseInt(sixes);
+            break;
         }
     }
     fs.writeFileSync(leaderboardFilePath, JSON.stringify(board));
@@ -176,7 +193,7 @@ function processDetailsonLeaderBoard(teamName, batsmanName, runs, balls, fours, 
             createbatsmanName(teamName, batsmanName, runs, balls, fours, sixes, strikeRate);
         }
     }
-    else{
+    else {
         createLeaderBoard();
         createbatsmanName(teamName, batsmanName, runs, balls, fours, sixes, strikeRate);
     }
