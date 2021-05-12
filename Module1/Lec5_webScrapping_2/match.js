@@ -12,6 +12,7 @@ function getMatchDetails(matchLink) {
 
 
 function processData(html) {
+    
     let myDocument = cheerio.load(html);
     let bothInnings = myDocument(".card.content-block.match-scorecard-table .Collapsible");
     for (let i = 0; i < bothInnings.length; i++) {
