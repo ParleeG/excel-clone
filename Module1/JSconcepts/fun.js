@@ -2,12 +2,12 @@ console.log(a);
 console.log(fun);
 fun();
 
-let a = 20;
-let fun = function(){
+var a = 20;
+var fun = function(){
     console.log("Fun Says Hi !!!");
 }
 
-// do this example for on understanding
+// do this example for own understanding
 // console.log(a);
 // console.log(fun());
 // fun();
