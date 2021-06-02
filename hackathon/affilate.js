@@ -1,6 +1,6 @@
 const puppeteer = require("puppeteer");
 const fs=require("fs");
-let content=[];
+let content=[];//array for all the products links
 async function login(){
     let browser =await puppeteer.launch({
         headless:false,
@@ -9,6 +9,9 @@ async function login(){
     });
     let pages = await browser.pages();
     let tab=pages[0];
+
+
+    //navigation to amazon affilation and login to account----------------------------
     await tab.goto("https://affiliate-program.amazon.in/");
     await tab.waitForSelector(".ac-header-item",{visible:true});
     let allnavatabs=await tab.$$(".ac-header-item a");
@@ -18,6 +21,11 @@ async function login(){
     await tab.type("#ap_email","guptahimanshu0521@gmail.com");
     await tab.type("#ap_password","hellohowsyou");
     await tab.click("#signInSubmit");
+    //-----------------------------------------------------------------
+
+
+
+    //naviagte to product lists------------------------------------- 
     await tab.waitForSelector('li[data-assoc-id="referrals"]>a',{visible:true});
     await tab.waitForTimeout(3000);
     let allnavs=await tab.$$('.ac-nav.ac-page-wrapper>ul[class="ac-nav"]>li');
@@ -26,11 +34,21 @@ async function login(){
     await tab.waitForSelector('.ac-nav.ac-page-wrapper>ul[class="ac-nav"]>li>ul>li[data-assoc-id="product_links"]');
     let productslink=await tab.$('.ac-nav.ac-page-wrapper>ul[class="ac-nav"]>li>ul>li[data-assoc-id="product_links"]');
     await productslink.click();
+    //----------------------------------------------
+
+
+
+    //Select the sub category to search for the products------------
     await tab.waitForTimeout(3000);
     let select=await tab.$('select[name="category"]');
     await select.click();
     await tab.waitForTimeout(2000);
     let alloptions=await tab.$$('.a-dropdown-link');
+    //----------------------------------------------------
+
+
+
+    //Getting all the products links and store in the array named contents---------------
     for(let j=1;j<5;j++){
         let optionToclick=await tab.evaluate(function(elem){return elem.click();},alloptions[j]);
         await tab.click('.a-button-input');
@@ -43,9 +61,12 @@ async function login(){
             await sendLinks(browser,fetchlink);
         }
     }
+    //----------------------------------------------------
     console.log(content);
-    
 }login();
+
+
+// function to open the products and getting links in new tab-----------------
 async function sendLinks(browser,fetchlink){
     let newtab= await browser.newPage();
     await newtab.goto(fetchlink);
