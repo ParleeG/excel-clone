@@ -1,9 +1,8 @@
 let allFilters = document.querySelectorAll(".filter");
-let ticketsContainer = document.querySelector(".tickets-container");
 let openmodal = document.querySelector(".open-modal");
 let closemodal = document.querySelector(".close-modal");
 let isclicked = false;
-let istyped=false;
+let istyped = false;
 openmodal.addEventListener("click", addticketmodal);
 closemodal.addEventListener("click", removeticketmodal);
 for (let i = 0; i < allFilters.length; i++) {
@@ -11,13 +10,13 @@ for (let i = 0; i < allFilters.length; i++) {
 }
 
 function selectFilter(e) {
-    let filterSelected = e.target.classList[1];
+    if(e.target.classList.contains("active-filter")){
 
-    if (ticketsContainer.classList.length > 1) {
-        ticketsContainer.classList.remove(ticketsContainer.classList[1]);
     }
-
-    ticketsContainer.classList.add(filterSelected);
+    else{
+        document.querySelector(".active-filter").remove();
+        e.target.classList.add("active-filter");
+    }
 }
 function addticketmodal() {
     if (!isclicked) {
@@ -33,17 +32,18 @@ function addticketmodal() {
     </div>`;
         document.querySelector("body").append(ticketModal);
         isclicked = true;
-        let textdiv=ticketModal.querySelector(".ticket-text");
-        textdiv.addEventListener("keypress",textstarting);
-        
-        let allticketfilter=ticketModal.querySelectorAll(".ticket-filter");
-        for(let i=0;i<allticketfilter.length;i++){
-            allticketfilter[i].addEventListener("click",function(e){
-               if(e.target.classList.contains("selected-filter")){
-                   return;
-               }
-               document.querySelector(".selected-filter").classList.remove("selected-filter");
-               e.target.classList.add("selected-filter"); 
+        istyped=false;
+        let textdiv = ticketModal.querySelector(".ticket-text");
+        textdiv.addEventListener("keypress", handlekeypress);
+
+        let allticketfilter = ticketModal.querySelectorAll(".ticket-filter");
+        for (let i = 0; i < allticketfilter.length; i++) {
+            allticketfilter[i].addEventListener("click", function (e) {
+                if (e.target.classList.contains("selected-filter")) {
+                    return;
+                }
+                document.querySelector(".selected-filter").classList.remove("selected-filter");
+                e.target.classList.add("selected-filter");
             })
         }
     }
@@ -52,12 +52,23 @@ function removeticketmodal() {
     if (isclicked) {
         document.querySelector(".ticket-modal").remove();
         isclicked = false;
-        istyped=false;
+        istyped = false;
     }
 }
-function textstarting(e){
-    if(!istyped){
-        e.target.textContent="";
-        istyped=true;
+function handlekeypress(e) {
+    if(e.key=="Enter"&& istyped && e.target.textContent){
+        let ticketid=uuid();
+        ticketinfoobject={
+            ticketfilter:document.querySelector(".selected-filter").classList[1],
+            tickettext:e.target.textContent,
+            ticketid:ticketid
+        }
+        addticketdb(ticketinfoobject);
+        closemodal.click();
+        appendticket(ticketinfoobject);
+    }
+    if (!istyped) {
+        e.target.textContent = "";
+        istyped = true;
     }
 }
