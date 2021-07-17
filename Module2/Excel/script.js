@@ -1,104 +1,159 @@
-let topRow=document.querySelector(".top-row");
-let topCol=document.querySelector(".top-col");
-let topLeftCell=document.querySelector(".top-left-cell");
-let allcells= document.querySelectorAll(".cell");
-let address=document.getElementById("address");
-let formula=document.getElementById("formula");
-let lastSelectedcell;
-cellsContainer.addEventListener("scroll",function(e){
-    let topoffset=e.target.scrollTop;
-    let leftoffset=e.target.scrollLeft;
-    // console.log(topoffset);
-    // console.log(leftoffset);
-    topRow.style.top=topoffset+"px";
-    topCol.style.left=leftoffset+"px";
-    topLeftCell.style.top=topoffset+"px";
-    topLeftCell.style.left=leftoffset+"px";
+let topLeftCell = document.querySelector(".top-left-cell");
+let topRow = document.querySelector(".top-row");
+let leftCol = document.querySelector(".left-col");
+let address = document.querySelector("#address");
+let formulaInput = document.querySelector("#formula");
+let allCells = document.querySelectorAll(".cell");
+let lastSelectedCell;
+
+cellsContainer.addEventListener("scroll", function (e) {
+  let topOffset = e.target.scrollTop;
+  let leftOffset = e.target.scrollLeft;
+
+  topRow.style.top = topOffset + "px";
+  topLeftCell.style.top = topOffset + "px";
+  topLeftCell.style.left = leftOffset + "px";
+  leftCol.style.left = leftOffset + "px";
 });
-formula.addEventListener("blur",function(e){
-    let formula=e.target.value;
-    if(formula){
-        let cellobject= getcellobjectfromElement(lastSelectedcell);
-        let calculatedValue=solveformula(formula,cellobject);
-        lastSelectedcell.textContent=calculatedValue;
-        cellobject.formula=formula;
-        cellobject.value=calculatedValue;
+
+formulaInput.addEventListener("blur", function (e) {
+  let formula = e.target.value;
+  if (formula) {
+    let cellObject = getCellObjectFromElement(lastSelectedCell);
+    if (cellObject.formula != formula) {
+      deleteFormula(cellObject);
     }
 
-})
-for(let i=0;i<allcells.length;i++){
-    allcells[i].addEventListener("click",function(e){
-        let cellobject=getcellobjectfromElement(e.target);
-        address.value=cellobject.name;
-        formula.value=cellobject.formula;
-    })
-    allcells[i].addEventListener("blur",function(e){
-        lastSelectedcell=e.target;
-        let rowid=e.target.getAttribute("rowid");
-        let colid=e.target.getAttribute("colid");
-        let celldata=e.target.textContent;
-        let cellobject=db[rowid][colid];
-        cellobject.value=celldata;
-        updatechildren(cellobject.children);
-    })
-}
- function getcellobjectfromElement(element){
-    let rowid=element.getAttribute("rowid");
-    let colid=element.getAttribute("colid");
-    return db[rowid][colid];
- }
- function solveformula(formula,selfcellobject){
-    //A1+A2
-    let formComp=formula.split(" ");
-    for(let i=0;i<formComp.length;i++){
-        let form=formComp[i];
-        if(form[0]>="A"&&form[0]<="Z"){
-            let parentobject=getcellobjectfromName(form);
-            if(selfcellobject){
-                parentobject.children.push(selfcellobject.name);
-            }
-            formula=formula.replace(form,parentobject.value)
+    let calculatedValue = solveFormula(formula, cellObject);
+    // UI Update
+    lastSelectedCell.textContent = calculatedValue;
+    // DB Update
+    cellObject.value = calculatedValue;
+    cellObject.formula = formula;
+
+    //childrens update
+    updateChildrens(cellObject.childrens);
+  }
+});
+
+function attachClickAndBlurEventOnCell() {
+  for (let i = 0; i < allCells.length; i++) {
+    allCells[i].addEventListener("click", function (e) {
+      let cellObject = getCellObjectFromElement(e.target);
+      address.value = cellObject.name;
+      formulaInput.value = cellObject.formula;
+    });
+
+    allCells[i].addEventListener("blur", function (e) {
+      lastSelectedCell = e.target;
+      // logic to save this value in db
+      let cellValueFromUI = e.target.textContent;
+      if (cellValueFromUI) {
+        let cellObject = getCellObjectFromElement(e.target);
+
+        // check if the given cell has a formula on it
+        if (cellObject.formula && cellValueFromUI != cellObject.value) {
+          deleteFormula(cellObject);
+          formulaInput.value = "";
         }
+
+        // cellObject ki value update !!
+        cellObject.value = cellValueFromUI;
+
+        //   update childrens of the current updated cell
+        updateChildrens(cellObject.childrens);
+
+        // handle visited Cells
+        let rowId = lastSelectedCell.getAttribute("rowid");
+        let colId = lastSelectedCell.getAttribute("colid");
+        if (!cellObject.visited) {
+          visitedCells.push({ rowId, colId });
+          cellObject.visited = true;
+        }
+      }
+    });
+  }
+}
+attachClickAndBlurEventOnCell();
+
+function deleteFormula(cellObject) {
+  cellObject.formula = "";
+  for (let i = 0; i < cellObject.parents.length; i++) {
+    let parentName = cellObject.parents[i];
+    // A1
+    let parentCellObject = getCellObjectFromName(parentName);
+    let updatedChildrens = parentCellObject.childrens.filter(function (
+      childName
+    ) {
+      if (childName == cellObject.name) {
+        return false;
+      }
+      return true;
+    });
+    parentCellObject.childrens = updatedChildrens;
+  }
+  cellObject.parents = [];
+}
+
+function solveFormula(formula, selfCellObject) {
+  // tip : implement infix evalutaion
+  // ( A1 + A2 ) => ( 10 + 20 );
+  let formulaComps = formula.split(" ");
+  // ["(" , "A1" , "+" , "A2" , ")"];
+  // find valid component
+  for (let i = 0; i < formulaComps.length; i++) {
+    let fComp = formulaComps[i];
+    if (
+      (fComp[0] >= "A" && fComp[0] <= "Z") ||
+      (fComp[0] >= "a" && fComp <= "z")
+    ) {
+      // A1 || A2
+      // fComp = A1
+      let parentCellObject = getCellObjectFromName(fComp);
+      let value = parentCellObject.value;
+      if (selfCellObject) {
+        //add yourself as a child of parentCellObject
+        parentCellObject.childrens.push(selfCellObject.name);
+        // update your parents
+        selfCellObject.parents.push(parentCellObject.name);
+      }
+
+      formula = formula.replace(fComp, value);
     }
-    let calculatedValues=eval(formula);
-    // let stack=[];
-    // for(let i=0;i<formula.length;i++){
-    //     let ch=formula[i];
-    //     if(ch=="("){
-    //         stack.push(ch);
-    //     }
-    //     else if(ch==")"){
-    //         while(stack[stack.length-1]!='('){
-    //             let val2object=getcellobjectfromName(stack.pop());
-    //         }
-    //     }
-    //     else if(ch>="A"&&ch<="Z"){
-    //         ch+=formula[i+1];
-    //         stack.push(ch);
-    //     }
-    //     else if(ch>="a"&&ch<="z"){
-    //         alert("Please write the Column names in Capital letters");
-    //     }
-    //     else if(ch=="+"||ch=="-"){
-    //         stack.push(ch);
-    //     }
-    // }
-    return calculatedValues;
- }
- function getcellobjectfromName(name){
-    let colid=name.charCodeAt(0)-65;
-    let rowid=Number(name.substring(1))-1;
-    return db[rowid][colid];
- }
- function updatechildren(childern){
-     for(let i=0;i<childern.length;i++){
-         let child=childern[i];
-         let childcellobject=getcellobjectfromName(child);
-         let updatedchildvalue=solveformula(childcellobject.formula);
-         childcellobject.value=updatedchildvalue;
-         let colid=child.charCodeAt(0)-65;
-         let rowid=Number(child.substring(1))-1;
-         document.querySelector(`div[rowid="${rowid}"][colid="${colid}"]`).textContent=updatedchildvalue;
-         updatechildren(childcellobject.children);
-     }
- }
+  }
+  // ( 10 + 20 ) => infix evaluation
+  let calculatedValue = eval(formula);
+  return calculatedValue;
+}
+
+function getCellObjectFromElement(element) {
+  let rowId = element.getAttribute("rowid");
+  let colId = element.getAttribute("colid");
+  return db[rowId][colId];
+}
+
+function getCellObjectFromName(name) {
+  // A100
+  let colId = name.charCodeAt(0) - 65;
+  let rowId = Number(name.substring(1)) - 1;
+  return db[rowId][colId];
+}
+
+function updateChildrens(childrens) {
+  for (let i = 0; i < childrens.length; i++) {
+    let child = childrens[i];
+    //B1
+    let childCellObject = getCellObjectFromName(child);
+    let updatedValueOfChild = solveFormula(childCellObject.formula);
+    //db update
+    childCellObject.value = updatedValueOfChild;
+    //ui update
+    let colId = child.charCodeAt(0) - 65;
+    let rowId = Number(child.substring(1)) - 1;
+    document.querySelector(
+      `div[rowid="${rowId}"][colid="${colId}"]`
+    ).textContent = updatedValueOfChild;
+    //recursive call
+    updateChildrens(childCellObject.childrens);
+  }
+}
